@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Juego de la Serpiente</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        h1 {
+            color: #4CAF50;
+            margin-top: 20px;
+            font-size: 2.5em;
+        }
+
+        #gameContainer {
+            display: flex;
+            justify-content: space-between;
+            width: 80%;
+            max-width: 1000px;
+            position: relative;
+        }
+
+        canvas {
+            border: 2px solid #4CAF50;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease-in-out;
+        }
+
+        #score {
+            font-size: 1.5em;
+            color: #333;
+            margin-top: 10px;
+        }
+
+        #ranking {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            width: 250px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transform: translateX(50px);
+            animation: slideIn 0.5s forwards;
+        }
+
+        #ranking h3 {
+            text-align: center;
+            color: #4CAF50;
+            font-size: 1.8em;
+        }
+
+        #rankingList {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+            font-size: 1.2em;
+        }
+
+        #rankingList li {
+            margin: 10px 0;
+            color: #333;
+            font-weight: bold;
+            transition: color 0.3s ease;
+        }
+
+        #rankingList li:hover {
+            color: #4CAF50;
+        }
+
+        @keyframes slideIn {
+            0% {
+                opacity: 0;
+                transform: translateX(50px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #backButton {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background-color: #0a0a0a;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: transform 0.3s;
+        }
+
+        #backButton:hover {
+            transform: scale(1.1);
+            background-color: #f0f0f0;
+        }
+        
+        #topicModal {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #4CAF50;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            text-align: center;
+            width: 250px;
+        }
+
+        #topicModal h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+        }
+
+        #topicModal p {
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="backButton" onclick="window.location.href='index.html';">
+        <i class="fas fa-arrow-left"></i>
+    </button>
+
+    <div id="gameContainer">
+        <div id="gameArea">
+            <h1>Juego de la Serpiente</h1>
+            <canvas id="gameCanvas" width="400" height="400"></canvas>
+            <div id="score">Tu puntaje: 0</div>
+        </div>
+
+        <div id="ranking">
+            <h3>Ranking</h3>
+            <ul id="rankingList"></ul>
+        </div>
+    </div>
+
+    <div id="topicModal">
+        <h3 id="topicTitle"></h3>
+        <p id="topicDescription"></p>
+        <button onclick="continueGame()">Continuar</button>
+    </div>
+
+    <audio id="backgroundMusic" src="song1.mp3" preload="auto" loop></audio>
+
+    <script>
+        // Cargar configuración desde localStorage
+        const playerName = localStorage.getItem('playerName');
+        const backgroundColor = localStorage.getItem('backgroundColor');
+        const snakeColor = localStorage.getItem('snakeColor');
+
+        // Aplicar configuraciones
+        document.body.style.backgroundColor = backgroundColor;
+        document.getElementById('gameCanvas').style.borderColor = snakeColor;
+
+        // Variables globales del juego
+        let canvas = document.getElementById('gameCanvas');
+        let ctx = canvas.getContext('2d');
+        let score = 0;
+        let snake = [{ x: 160, y: 160 }];
+        let direction = 'RIGHT';
+        let food = { x: 0, y: 0 };
+        let isPaused = false;
+        let gameOver = false;
+        let ranking = JSON.parse(localStorage.getItem('ranking')) || [];
+
+        // Reproducir la música de fondo
+        const music = document.getElementById('backgroundMusic');
+
+        // Función para actualizar el juego
+        function updateGame() {
+            if (gameOver || isPaused) return;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Mover la serpiente
+            let head = { ...snake[0] };
+
+            if (direction === 'LEFT') head.x -= 20;
+            if (direction === 'RIGHT') head.x += 20;
+            if (direction === 'UP') head.y -= 20;
+            if (direction === 'DOWN') head.y += 20;
+
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                score += 10;
+                createFood();
+                pauseAndShowTopic();
+            } else {
+                snake.pop();
+            }
+
+            // Comprobar colisiones
+            if (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height || collision(head)) {
+                gameOver = true;
+                setTimeout(() => {
+                    alert('¡Juego terminado! Tu puntaje es ' + score);
+                    saveScore();
+                    resetGame();
+                }, 200);
+            }
+
+            // Dibujar la serpiente
+            ctx.fillStyle = snakeColor;
+            snake.forEach((segment, index) => {
+                ctx.fillRect(segment.x, segment.y, 20, 20);
+            });
+
+            // Dibujar la comida
+            ctx.fillStyle = 'red';
+            ctx.fillRect(food.x, food.y, 20, 20);
+
+            // Actualizar el puntaje
+            document.getElementById('score').innerText = `${playerName}, tu puntaje: ${score}`;
+
+            if (!gameOver) {
+                setTimeout(updateGame, 100);
+            }
+        }
+
+        // Función para crear la comida
+        function createFood() {
+            food.x = Math.floor(Math.random() * (canvas.width / 20)) * 20;
+            food.y = Math.floor(Math.random() * (canvas.height / 20)) * 20;
+        }
+
+        // Función para detectar colisiones
+        function collision(head) {
+            return snake.some((segment, index) => index !== 0 && segment.x === head.x && segment.y === head.y);
+        }
+
+        // Función para pausar el juego y mostrar el tema
+        function pauseAndShowTopic() {
+            isPaused = true;
+            const randomTopic = getRandomTopic();
+            document.getElementById('topicTitle').innerText = randomTopic.title;
+            document.getElementById('topicDescription').innerText = randomTopic.description;
+            document.getElementById('topicModal').style.display = 'block';
+            music.pause();
+        }
+
+        // Función para continuar el juego
+        function continueGame() {
+            isPaused = false;
+            document.getElementById('topicModal').style.display = 'none';
+            music.play();
+            updateGame();
+        }
+
+ // Función para pausar el juego y mostrar el tema
+ function pauseAndShowTopic() {
+    isPaused = true;
+    music.pause(); // Pausar música cuando se pausa el juego
+    // Mostrar el tema aleatorio aquí (por ejemplo, verbos modales o phrasal verbs)
+    const topics = [
+    { title: "Verbo Modal", description: "Los verbos modales en inglés expresan capacidad, permiso, obligación, posibilidad o probabilidad. Se utilizan para modificar el significado de otros verbos, indicando la actitud del hablante hacia la acción." },
+    { title: "Phrasal Verb", description: "Un phrasal verb es un verbo compuesto por un verbo y una preposición o adverbio. A menudo, el significado no se puede deducir del significado literal de las palabras que lo componen." },
+    { title: "Adjetivos", description: "Los adjetivos son palabras que describen o califican a los sustantivos, proporcionando detalles sobre características, estados o cualidades de personas, cosas o ideas." },
+    { title: "Sustantivos", description: "Los sustantivos son palabras que nombran personas, lugares, cosas o ideas. Son la base de la mayoría de las oraciones y pueden ser concretos o abstractos." },
+    { title: "Conjunciones", description: "Las conjunciones son palabras que unen oraciones, frases o palabras. Ayudan a crear conexiones lógicas entre las ideas dentro de una oración." },
+    { title: "Frases Interrogativas", description: "Las frases interrogativas se utilizan para hacer preguntas. Se forman a menudo con una inversión del sujeto y el verbo, o con palabras interrogativas como 'what', 'where', 'how'." },
+    { title: "Frases Exclamativas", description: "Las frases exclamativas expresan emociones intensas, como sorpresa, felicidad o enojo. Se utilizan para resaltar una reacción o emoción y generalmente terminan con un signo de exclamación." },
+    { title: "Preposiciones", description: "Las preposiciones son palabras que muestran la relación entre un sustantivo y otras palabras en la oración. Se usan para indicar lugar, tiempo, dirección, causa, entre otras." },
+    { title: "Pronombres", description: "Los pronombres son palabras que sustituyen a los sustantivos para evitar repeticiones. Existen pronombres personales, posesivos, reflexivos, entre otros." },
+    { title: "Tiempos Verbales", description: "Los tiempos verbales indican cuándo ocurre una acción. Los más comunes incluyen el presente, pasado y futuro, y pueden modificarse para expresar acciones continuas, perfectas o habituales." },
+    { title: "Futuro", description: "El futuro se utiliza para expresar acciones que ocurrirán después del momento presente. Se forma con 'will' o 'going to' para hablar de acciones planeadas o predicciones." },
+    { title: "Pasado Simple", description: "El pasado simple describe acciones que ocurrieron y se completaron en un momento específico del pasado. Se utiliza para narrar eventos y hechos concretos." },
+    { title: "Condicional", description: "El condicional se usa para hablar de situaciones hipotéticas o acciones que dependen de una condición. Se forma con 'would' + el verbo base." },
+    { title: "Modismos", description: "Los modismos son expresiones cuyo significado no puede deducirse literalmente. Son comunes en el lenguaje coloquial y varían según la cultura y el contexto." },
+    { title: "Concordancia", description: "La concordancia se refiere a la relación gramatical entre el sujeto y el verbo en número y persona. El verbo debe concordar con el sujeto de la oración." },
+    { title: "Comparativos", description: "Los comparativos se utilizan para comparar dos cosas, y se forman añadiendo '-er' al adjetivo o utilizando 'more' antes de adjetivos de más de dos sílabas." },
+    { title: "Superlativos", description: "Los superlativos se utilizan para comparar tres o más cosas y expresar el grado más alto de una cualidad. Se forma con 'most' o añadiendo '-est' a los adjetivos." },
+    { title: "Oraciones Negativas", description: "Las oraciones negativas se utilizan para expresar la negación de una acción o idea. Se forma añadiendo 'not' al verbo auxiliar o con otros adverbios de negación." },
+    { title: "Oraciones Afirmativas", description: "Las oraciones afirmativas expresan una acción o estado positivo. Generalmente siguen el orden sujeto + verbo + complemento." },
+    { title: "Oraciones Complejas", description: "Las oraciones complejas tienen más de una proposición, unidas por conjunciones, y se utilizan para expresar ideas más elaboradas o condiciones específicas." },
+    { title: "Oraciones Simples", description: "Las oraciones simples contienen una sola proposición, con sujeto y verbo, y son la estructura básica de la lengua." }
+  ];
+    const randomTopic = topics[Math.floor(Math.random() * topics.length)];
+    document.getElementById('topicTitle').innerText = randomTopic.title;
+    document.getElementById('topicDescription').innerText = randomTopic.description;
+    document.getElementById('topicModal').style.display = 'block';
+}
+
+        // Función para guardar la puntuación en el ranking
+        function saveScore() {
+            ranking.push({ name: playerName, score: score });
+            ranking.sort((a, b) => b.score - a.score); // Ordenar de mayor a menor
+            localStorage.setItem('ranking', JSON.stringify(ranking));
+
+            // Mostrar el ranking en la página
+            updateRanking();
+        }
+
+        // Función para actualizar el ranking
+        function updateRanking() {
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = '';
+            ranking.slice(0, 5).forEach((entry) => {
+                const li = document.createElement('li');
+                li.innerText = `${entry.name}: ${entry.score}`;
+                rankingList.appendChild(li);
+            });
+        }
+
+        // Eventos de teclas para controlar la serpiente
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft' && direction !== 'RIGHT') direction = 'LEFT';
+            if (e.key === 'ArrowRight' && direction !== 'LEFT') direction = 'RIGHT';
+            if (e.key === 'ArrowUp' && direction !== 'DOWN') direction = 'UP';
+            if (e.key === 'ArrowDown' && direction !== 'UP') direction = 'DOWN';
+        });
+
+        // Función para reiniciar el juego
+        function resetGame() {
+            score = 0;
+            snake = [{ x: 160, y: 160 }];
+            direction = 'RIGHT';
+            createFood();
+            gameOver = false;
+            updateGame();
+        }
+
+        // Iniciar el juego
+        createFood();
+        updateGame();
+    </script>
+</body>
+</html>

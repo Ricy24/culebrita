@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio del Juego</title>
+    <style>
+        /* Estilos generales */
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #fffacd; /* Amarillo Claro */
+            color: #333;
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            text-align: center;
+        }
+
+        /* Título grande y animado */
+        h1 {
+            font-size: 90px;
+            color: #ff6a88;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-top: 50px;
+            animation: bounce 1s infinite alternate;
+        }
+
+        @keyframes bounce {
+            0% {
+                transform: translateY(0);
+            }
+            50% {
+                transform: translateY(-15px);
+            }
+            100% {
+                transform: translateY(0);
+            }
+        }
+
+        /* Estilos del formulario de inicio */
+        #gameStartForm {
+            margin-top: 30px;
+            display: block;
+            padding: 30px;
+            background-color: rgba(255, 255, 255, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        #gameStartForm input {
+            padding: 12px;
+            font-size: 18px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            border: 1px solid #ff6a88;
+            width: 200px;
+            text-align: center;
+        }
+
+        #gameStartForm select {
+            padding: 12px;
+            font-size: 18px;
+            margin-right: 20px;
+            border-radius: 8px;
+            border: 1px solid #ff6a88;
+            background-color: #f9f9f9;
+        }
+
+        .optionsContainer {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            padding: 12px 40px;
+            background-color: #ff6a88;
+            color: white;
+            font-weight: bold;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: transform 0.2s ease-in-out;
+        }
+
+        button:hover {
+            background-color: #ff4d95;
+            transform: scale(1.1);
+        }
+
+        audio {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Serviingles</h1>
+
+    <div id="gameStartForm">
+        <!-- Nombre del jugador -->
+        <input type="text" id="playerName" placeholder="Ingresa tu nombre" required><br>
+
+        <!-- Opciones de color y fondo -->
+        <div class="optionsContainer">
+            <select id="backgroundColor">
+                <option value="white">Blanco</option>
+                <option value="lightblue">Azul Claro</option>
+                <option value="lightgreen">Verde Claro</option>
+                <option value="lightyellow" selected>Amarillo Claro</option>
+            </select>
+
+            <select id="snakeColor">
+                <option value="green">Verde</option>
+                <option value="red">Rojo</option>
+                <option value="blue">Azul</option>
+                <option value="purple">Morado</option>
+            </select>
+        </div>
+
+        <!-- Botón de Jugar -->
+        <button onclick="startGame()">Jugar</button>
+    </div>
+
+    <audio id="backgroundMusic" src="song1.mp3" preload="auto"></audio>
+
+    <script>
+        function startGame() {
+            // Recoger los valores del formulario
+            const playerName = document.getElementById('playerName').value;
+            const backgroundColor = document.getElementById('backgroundColor').value;
+            const snakeColor = document.getElementById('snakeColor').value;
+
+            // Validar si el nombre ha sido ingresado
+            if (!playerName) {
+                alert("Por favor, ingresa tu nombre.");
+                return;
+            }
+
+            // Guardar la configuración en el almacenamiento local (localStorage)
+            localStorage.setItem('playerName', playerName);
+            localStorage.setItem('backgroundColor', backgroundColor);
+            localStorage.setItem('snakeColor', snakeColor);
+
+            // Reproducir la música al iniciar el juego
+            const music = document.getElementById('backgroundMusic');
+            music.play();
+
+            // Redirigir al juego
+            window.location.href = 'game.html';
+        }
+    </script>
+
+</body>
+</html>
